@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're Offline!</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f8fafc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      color: #0f172a;
+    }
+    h1 { margin-bottom: 5px; }
+    p { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 90%; }
+    canvas {
+      background-color: #fff;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid #e2e8f0;
+      max-width: 100%;
+    }
+    #score-board {
+      display: flex;
+      justify-content: space-between;
+      width: 600px;
+      max-width: 90%;
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .btn {
+      margin-top: 30px;
+      padding: 12px 24px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .btn:hover { background-color: #115293; }
+    @media (max-width: 600px) {
+      canvas { width: 90%; height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Connection Lost</h1>
+  <p>You're currently offline. While you wait for your connection to return, play a quick game!</p>
+  
+  <canvas id="gameCanvas" width="600" height="180"></canvas>
+  <div id="score-board">
+    <span>Score: <span id="score">0</span></span>
+    <span>Highscore: <span id="highscore">0</span></span>
+  </div>
+  
+  <button class="btn" onclick="window.location.reload()">Refresh Page</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const highscoreEl = document.getElementById('highscore');
+
+    // Game variables
+    let score = 0;
+    let highscore = localStorage.getItem('greatGolley_offlineHighscore') || 0;
+    highscoreEl.innerText = highscore;
+    let isGameOver = false;
+    let gameSpeed = 5;
+    let frame = 0;
+
+    // Player
+    const player = {
+      x: 50,
+      y: 120,
+      width: 30,
+      height: 30,
+      dy: 0,
+      gravity: 0.6,
+      jumpForce: -10,
+      isJumping: false
+    };
+
+    // Obstacles
+    const obstacles = [];
+
+    function jump() {
+      if (!player.isJumping) {
+        player.dy = player.jumpForce;
+        player.isJumping = true;
+      }
+    }
+
+    // Input handlers
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        jump();
+        if (isGameOver) resetGame();
+      }
+    });
+    canvas.addEventListener('mousedown', () => {
+      jump();
+      if (isGameOver) resetGame();
+    });
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      jump();
+      if (isGameOver) resetGame();
+    });
+
+    function drawPlayer() {
+      ctx.fillStyle = '#1976d2';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+      
+      // Draw a simple eye
+      ctx.fillStyle = 'white';
+      ctx.fillRect(player.x + 20, player.y + 5, 5, 5);
+    }
+
+    function handleObstacles() {
+      if (frame % 80 === 0) {
+        obstacles.push({
+          x: canvas.width,
+          y: 120,
+          width: 20 + Math.random() * 20,
+          height: 30
+        });
+      }
+
+      for (let i = 0; i < obstacles.length; i++) {
+        let obs = obstacles[i];
+        obs.x -= gameSpeed;
+        
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+        // Collision detection
+        if (
+          player.x < obs.x + obs.width &&
+          player.x + player.width > obs.x &&
+          player.y < obs.y + obs.height &&
+          player.y + player.height > obs.y
+        ) {
+          isGameOver = true;
+        }
+
+        // Remove off-screen obstacles
+        if (obs.x + obs.width < 0) {
+          obstacles.splice(i, 1);
+          i--;
+          score += 10;
+          if (score % 100 === 0) gameSpeed += 0.5; // increase difficulty
+        }
+      }
+    }
+
+    function resetGame() {
+      player.y = 120;
+      player.dy = 0;
+      obstacles.length = 0;
+      score = 0;
+      gameSpeed = 5;
+      isGameOver = false;
+      frame = 0;
+      requestAnimationFrame(gameLoop);
+    }
+
+    function drawGround() {
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(0, 150, canvas.width, 30);
+    }
+
+    function updateHighscore() {
+      if (score > highscore) {
+        highscore = score;
+        localStorage.setItem('greatGolley_offlineHighscore', highscore);
+        highscoreEl.innerText = highscore;
+      }
+    }
+
+    function gameLoop() {
+      if (isGameOver) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Game Over!', canvas.width/2, canvas.height/2 - 10);
+        ctx.font = '16px Arial';
+        ctx.fillText('Tap or Space to restart', canvas.width/2, canvas.height/2 + 20);
+        updateHighscore();
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Player physics
+      player.y += player.dy;
+      if (player.y + player.height < 150) {
+        player.dy += player.gravity;
+      } else {
+        player.dy = 0;
+        player.y = 120;
+        player.isJumping = false;
+      }
+
+      drawGround();
+      drawPlayer();
+      handleObstacles();
+
+      scoreEl.innerText = score;
+      frame++;
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
