@@ -18,11 +18,8 @@ import Link from 'next/link';
 
 const navItems = [
   { label: 'Home', path: '/' },
-  { label: 'Github', path: 'https://github.com/gunther-svg', external: true },
-  { label: 'Store', path: '/store', },
   { label: 'Commissions', path: '/commissions' },
   { label: 'FAQ', path: '/faq' },
-  { label: 'Email', path: 'mailto:[EMAIL_ADDRESS]', external: true },
   { label: 'Print', path: '#', action: 'print' },
 ];
 
@@ -84,7 +81,7 @@ export default function Navbar() {
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center', width: 250 }}>
       <img src="/icon.svg" alt="greatGolley" />
       <Typography variant="h6" sx={{ my: 2 }}>
-        greatGolley
+        greatPortfolio
       </Typography>
       <List>
         {navItems.map((item) => (
